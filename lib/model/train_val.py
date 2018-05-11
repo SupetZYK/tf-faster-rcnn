@@ -280,24 +280,26 @@ class SolverWrapper(object):
       now = time.time()
       if iter == 1 or now - last_summary_time > cfg.TRAIN.SUMMARY_INTERVAL:
         # Compute the graph with summary
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
-          self.net.train_step_with_summary(sess, blobs, train_op)
-        self.writer.add_summary(summary, float(iter))
+        # rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+        #   self.net.train_step_with_summary(sess, blobs, train_op)
+        # self.writer.add_summary(summary, float(iter))
         # Also check the summary on the validation set
         blobs_val = self.data_layer_val.forward()
         summary_val = self.net.get_summary(sess, blobs_val)
         self.valwriter.add_summary(summary_val, float(iter))
         last_summary_time = now
-      else:
-        # Compute the graph without summary
-        rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
-          self.net.train_step(sess, blobs, train_op)
+      # else:
+      #   # Compute the graph without summary
+      #   rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss = \
+      #     self.net.train_step(sess, blobs, train_op)
+      rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, total_loss, summary = \
+        self.net.train_step_with_summary(sess, blobs, train_op)
+      self.writer.add_summary(summary, float(iter))
       timer.toc()
 
       # Display training information
       if iter % (cfg.TRAIN.DISPLAY) == 0:
-        print('iter: %d / %d, total loss: %.6f\n >>> rpn_loss_cls: %.6f\n '
-              '>>> rpn_loss_box: %.6f\n >>> loss_cls: %.6f\n >>> loss_box: %.6f\n >>> lr: %f' % \
+        print('iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
               (iter, max_iters, total_loss, rpn_loss_cls, rpn_loss_box, loss_cls, loss_box, lr.eval()))
         print('speed: {:.3f}s / iter'.format(timer.average_time))
 
@@ -368,8 +370,9 @@ def train_net(network, imdb, roidb, valroidb, output_dir, tb_dir,
   valroidb = filter_roidb(valroidb)
 
   tfconfig = tf.ConfigProto(allow_soft_placement=True)
-  tfconfig.gpu_options.allow_growth = True
-
+  tfconfig.gpu_options.allocator_type = 'BFC'
+  # tfconfig.gpu_options.allow_growth = True
+  tfconfig.gpu_options.per_process_gpu_memory_fraction=0.7
   with tf.Session(config=tfconfig) as sess:
     sw = SolverWrapper(sess, network, imdb, roidb, valroidb, output_dir, tb_dir,
                        pretrained_model=pretrained_model)
