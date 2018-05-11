@@ -75,7 +75,6 @@ if __name__ == '__main__':
     filename = os.path.splitext(os.path.basename(args.model))[0]
   else:
     filename = os.path.splitext(os.path.basename(args.weight))[0]
-
   tag = args.tag
   tag = tag if tag else 'default'
   filename = tag + '/' + filename
